@@ -7,13 +7,15 @@ import {
   MessageComponentTypes,
   ButtonStyleTypes,
 } from "discord-interactions";
-import { getEmoteSet } from "./emotes.js";
+import { getEmoteSet } from "./7tv-requests.js";
 import {
   VerifyDiscordRequest,
-  getRandomEmoji,
   DiscordRequest,
   createGuildEmoji,
-} from "./utils.js";
+  getGuildEmojis,
+} from "./discord-requests.js";
+import { uploadAllEmotesFromSet } from "./emotes.js";
+import { encodeImageToBase64 } from "./utils.js";
 import fetch from "node-fetch";
 
 // Create an express app
@@ -28,7 +30,8 @@ app.use(express.json({ verify: VerifyDiscordRequest(process.env.PUBLIC_KEY) }));
  */
 app.post("/interactions", async function (req, res) {
   // Interaction type and data
-  const { type, id, data, guild_id } = req.body;
+  console.log(req.body);
+  const { type, id, data, guild_id, application_id } = req.body;
 
   /**
    * Handle verification requests
@@ -51,28 +54,27 @@ app.post("/interactions", async function (req, res) {
         type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
         data: {
           // Fetches a random emoji to send from a helper function
-          content: "hello world " + getRandomEmoji(),
+          content: "hello world",
         },
       });
     } else if (name === "add-set") {
       const setId = options[0].value;
-
       try {
-        const set = await getEmoteSet(setId);
-        const imageUrl = "https://cdn.7tv.app/emote/61d5f4423d52bb5c33c4e60e/2x.webp";
-        const imageUrlData = await fetch(imageUrl);
-        const buffer = await imageUrlData.arrayBuffer();
-        const stringifiedBuffer = Buffer.from(buffer).toString('base64');
-        const contentType = imageUrlData.headers.get('content-type');
-        const imageBase64 = `data:${contentType};base64,${stringifiedBuffer}`;
-        await createGuildEmoji(guild_id, "poggers", imageBase64);
+        await uploadAllEmotesFromSet(setId, guild_id, application_id);
       } catch (err) {
-        console.error(err);
+        console.log(err);
+        return res.send({
+          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+          data: {
+            content: "There was an error adding the emote set",
+            flags: InteractionResponseFlags.EPHEMERAL,
+          },
+        });
       }
       return res.send({
         type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
         data: {
-          content: "made poggers",
+          content: "Poggers! It worked.",
         },
       });
     }
