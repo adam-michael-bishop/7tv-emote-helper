@@ -30,7 +30,6 @@ app.use(express.json({ verify: VerifyDiscordRequest(process.env.PUBLIC_KEY) }));
  */
 app.post("/interactions", async function (req, res) {
   // Interaction type and data
-  console.log(req.body);
   const { type, id, data, guild_id, application_id } = req.body;
 
   /**
